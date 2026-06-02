@@ -149,6 +149,36 @@ Login → Dashboard (stats nasional) → Analysis (pilih provinsi + skenario)
 
 ---
 
+## Deployment ke Azure
+
+Karena arsitektur memisahkan `backend/` dan `model/`, backend **wajib di-deploy menggunakan Docker** agar semua file terangkut.
+
+### 1. Frontend (Azure Static Web Apps)
+Paling mudah dideploy langsung dari GitHub atau via CLI dari root repo:
+```bash
+az staticwebapp create --name rightaid-web --resource-group <Nama-RG> \
+  --source . --app-location "frontend" --login-with-github
+```
+
+### 2. Backend (Web App for Containers)
+Backend harus dibangun sebagai Docker image agar memuat file model(`.pkl`) dari folder `model/output/`.
+
+```bash
+# 1. Build & Push Image ke Azure Container Registry (ACR)
+az acr create --resource-group <Nama-RG> --name rightaidregistry --sku Basic
+az acr build --registry rightaidregistry --image rightaid-api:v1 -f backend/Dockerfile .
+
+# 2. Buat App Service Plan (Linux)
+az appservice plan create --name rightaid-plan --resource-group <Nama-RG> --is-linux --sku B1
+
+# 3. Deploy API menggunakan image dari ACR
+az webapp create --resource-group <Nama-RG> --plan rightaid-plan --name rightaid-api \
+  --container-image-name rightaidregistry.azurecr.io/rightaid-api:v1
+```
+*Catatan: Tambahkan konfigurasi `.env` ke App Service Configuration di portal Azure.*
+
+---
+
 ## Upload Data Nyata (CSV / JSON)
 
 Selain generate data sintetis, platform mendukung upload data rumah tangga nyata:
