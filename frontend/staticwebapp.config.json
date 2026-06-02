@@ -1,0 +1,21 @@
+{
+  "routes": [],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/css/*", "/js/*", "/favicon*", "/*.png", "/*.jpg", "/*.svg"]
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html"
+    }
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block"
+  },
+  "mimeTypes": {
+    ".json": "text/json",
+    ".webp": "image/webp"
+  }
+}

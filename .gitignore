@@ -1,0 +1,24 @@
+# Dependencies & environments
+.venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor / IDE
+.claude
+.vscode/
+.idea/
+
+# top-level scratch
+/output/
+
+# model/output — large regenerable artifacts ignored; trained models tracked
+model/output/*.parquet
+model/output/*.png
+model/*.parquet
+
+
+
+# Backend secrets
+backend/.env
