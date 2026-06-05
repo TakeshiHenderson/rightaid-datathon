@@ -187,9 +187,11 @@
       if (el) el.innerHTML =
         '<div style="padding:32px 16px;text-align:center;color:var(--text-3);font-size:.85rem;">' + (msg || NO_DATA) + '</div>';
     };
-    // Returns live API data; for guests falls back to synthetic, for real accounts returns null.
+    // The dashboard shows national reference figures as demo content for guests only.
+    // Real accounts get empty states — these stats are generic, not derived from their data.
     const fetchOr = async (apiFn, fallback) => {
-      try { return await apiFn(); } catch (e) { return guest ? fallback : null; }
+      if (!guest) return null;
+      try { return await apiFn(); } catch (e) { return fallback; }
     };
 
     // National stats
