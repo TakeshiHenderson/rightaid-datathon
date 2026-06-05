@@ -194,6 +194,102 @@
       try { return await apiFn(); } catch (e) { return fallback; }
     };
 
+    function setCardTitle(elId, title, subtitle) {
+      const host = document.getElementById(elId);
+      const card = host && host.closest(".card");
+      if (!card) return;
+      const t = card.querySelector(".card-title");
+      const s = card.querySelector(".card-subtitle");
+      if (t) t.textContent = title;
+      if (s && subtitle != null) s.textContent = subtitle;
+    }
+
+    // Render the dashboard from the user's own analyzed session (upload/generate).
+    function renderSessionDashboard(pred) {
+      const m  = pred.metrics || {};
+      const mp = pred.metrics_pmt || {};
+      const cm = pred.confusion_matrix || {};
+      const cands = pred.mistargeting_candidates || [];
+      const dd = pred.decile_dist || {};
+      const totalRT = (cm.tp||0) + (cm.fp||0) + (cm.fn||0) + (cm.tn||0);
+      const anomali = cands.filter(c => c.isAnomaly).length;
+      const prov = App.SESSION.province || "-";
+      const scen = App.SESSION.scenario || "normal";
+
+      const cards = [
+        { label: "Rumah Tangga Dianalisis", value: totalRT.toLocaleString("id-ID"), sub: "Provinsi: " + prov },
+        { label: "Potensi Exclusion Error", value: (m.exclusionErr ?? 0) + "%", sub: "PMT: " + (mp.exclusionErr ?? 0) + "%", color: "var(--danger)" },
+        { label: "Potensi Inclusion Error", value: (m.inclusionErr ?? 0) + "%", sub: "PMT: " + (mp.inclusionErr ?? 0) + "%", color: "var(--warning)" },
+        { label: "Kandidat Mis-Targeting", value: cands.length, sub: anomali + " terindikasi anomali" },
+      ];
+      document.getElementById("stat-grid").innerHTML = cards.map((s, i) => `
+        <div class="stat-card">
+          <div class="stat-label">${icons[i]} ${s.label}</div>
+          <div class="stat-value"${s.color ? ' style="color:' + s.color + '"' : ''}>${s.value}</div>
+          <div class="stat-delta" style="color:var(--text-3);font-weight:600;">${s.sub}</div>
+        </div>`).join("");
+
+      // Repurpose the trend card as the session's decile distribution.
+      setCardTitle("trend-chart", "Distribusi Desil — Sesi Anda", "Desil aktual (DTSEN) vs prediksi ML-PMT");
+      App.drawBarChart(document.getElementById("trend-chart"),
+        ["D1","D2","D3","D4","D5","D6","D7","D8","D9","D10"],
+        [{ data: dd.actual || dd.pmt || [] }, { data: dd.ml || [] }],
+        { colors: ["#9CA3AF", "#2563EB"] });
+
+      // Model comparison: PMT vs ML from this session.
+      const fill = (cells, x) => {
+        if (cells.length < 4) return;
+        cells[0].textContent = x.f1 ?? "—";
+        cells[1].textContent = x.auc ?? "—";
+        cells[2].textContent = x.exclusionErr != null ? x.exclusionErr + "%" : "—";
+        cells[3].textContent = x.inclusionErr != null ? x.inclusionErr + "%" : "—";
+        for (let i = 4; i < cells.length; i++) cells[i].textContent = "—";
+      };
+      fill(document.querySelectorAll(".model-col:first-child .model-metric .val"), mp);
+      fill(document.querySelectorAll(".model-col:last-child  .model-metric .val"), m);
+
+      // Province ranking card → session summary.
+      setCardTitle("province-ranking", "Ringkasan Sesi", "Berdasarkan data yang Anda analisis");
+      document.getElementById("province-ranking").innerHTML =
+        '<div style="font-size:.85rem;color:var(--text-2);line-height:2.1;">' +
+        '<div>Provinsi: <strong style="color:var(--text)">' + prov + '</strong></div>' +
+        '<div>Skenario: <strong style="color:var(--text)">' + scen + '</strong></div>' +
+        '<div>Akurasi Model (F1): <strong style="color:var(--text)">' + (m.f1 ?? '-') + '</strong></div>' +
+        '<div>Daya Beda (AUC): <strong style="color:var(--text)">' + (m.auc ?? '-') + '</strong></div>' +
+        '</div>';
+
+      // Insights derived from the session.
+      const dEx = (mp.exclusionErr || 0) - (m.exclusionErr || 0);
+      const sIns = [
+        { c:"#F0FDF4", ic:"#16A34A", t:"ML-PMT vs PMT konvensional", x:"Exclusion error ML " + (m.exclusionErr ?? '-') + "% dibanding PMT " + (mp.exclusionErr ?? '-') + "% (" + (dEx>=0?'lebih rendah':'lebih tinggi') + " " + Math.abs(dEx).toFixed(1) + " poin)." },
+        { c:"#FFFBEB", ic:"#D97706", t:"Kandidat perlu verifikasi", x: cands.length + " rumah tangga terindikasi mis-targeting, " + anomali + " di antaranya anomali." },
+        { c:"#EFF6FF", ic:"#2563EB", t:"Cakupan analisis", x: totalRT.toLocaleString("id-ID") + " rumah tangga dianalisis pada provinsi " + prov + "." },
+      ];
+      const insIcons = [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>',
+      ];
+      document.getElementById("insights-panel").innerHTML = sIns.map((ins, i) => `
+        <div class="insight-item">
+          <div class="insight-icon" style="background:${ins.c};color:${ins.ic};">${insIcons[i]}</div>
+          <div class="insight-text"><h4>${ins.t}</h4><p>${ins.x}</p></div>
+        </div>`).join("");
+
+      emptyPanel("dtsen-progress", "Progress DTSEN hanya tersedia pada data nasional.");
+    }
+
+    // Session mode: a real account with an active analyzed session sees its own
+    // results instead of empty national figures.
+    const activeSid = App.SESSION.lastSessionId;
+    if (!guest && activeSid) {
+      try {
+        const pred = await App.apiPredict(activeSid);
+        renderSessionDashboard(pred);
+        return;
+      } catch (e) { /* session gone/expired — fall through to empty states */ }
+    }
+
     // National stats
     let NS = await fetchOr(App.fetchNationalStats, EkoData.NATIONAL_STATS);
     const statMeta = [
