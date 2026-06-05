@@ -243,13 +243,17 @@
     fillModel(pmtVals, CMP && CMP.pmt);
     fillModel(mlVals,  CMP && CMP.ml);
 
-    // Province ranking
+    // Province ranking — demo content, guest only
     let provinces = null;
-    try {
-      const ap = await App.fetchProvinces();
-      if (ap && ap.length) provinces = ap.map(p => ({ name: p.name, povertyRate: p.povertyRate }));
-    } catch (e) {}
-    if (!provinces && guest) provinces = EkoData.PROVINCES.map(p => ({ name: p.name, povertyRate: p.povertyRate }));
+    if (guest) {
+      try {
+        const ap = await App.fetchProvinces();
+        provinces = (ap && ap.length) ? ap.map(p => ({ name: p.name, povertyRate: p.povertyRate }))
+                                      : EkoData.PROVINCES.map(p => ({ name: p.name, povertyRate: p.povertyRate }));
+      } catch (e) {
+        provinces = EkoData.PROVINCES.map(p => ({ name: p.name, povertyRate: p.povertyRate }));
+      }
+    }
     if (provinces) {
       const ranked = [...provinces].sort((a, b) => b.povertyRate - a.povertyRate).slice(0, 6);
       document.getElementById("province-ranking").innerHTML = ranked.map((p, i) => `
