@@ -237,7 +237,7 @@
         cells[2].textContent = m.exclusionErr + "%";
         cells[3].textContent = m.inclusionErr + "%";
       } else {
-        for (let i = 0; i < 4; i++) cells[i].textContent = "—";
+        cells.forEach(c => { c.textContent = "—"; });
       }
     };
     fillModel(pmtVals, CMP && CMP.pmt);
