@@ -297,10 +297,7 @@
 
     // Guest accounts demo with synthetic data; real accounts must upload their own data.
     function applyAccess() {
-      var u = (App.SESSION && App.SESSION.user) || {};
-      var email = (u.email || "").toLowerCase();
-      var role  = (u.role  || "").toLowerCase();
-      window.isGuest = role === "guest" || email.indexOf("guest") === 0;
+      window.isGuest = App.isGuest();
 
       var badge = document.getElementById("access-badge");
       if (window.isGuest) {

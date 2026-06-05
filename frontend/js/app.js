@@ -1,5 +1,45 @@
 /* RightAid Shared Utilities */
 
+/* ── Theme (light / dark) ──────────────────────────────────────────────── */
+var THEME_KEY = "rightaid_theme";
+var _redraws = [];
+
+function getTheme() {
+  try {
+    var saved = localStorage.getItem(THEME_KEY);
+    if (saved === "dark" || saved === "light") return saved;
+  } catch (e) {}
+  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+  return "light";
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+}
+
+function toggleTheme() {
+  var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  applyTheme(next);
+  _redraws.forEach(function(fn) { try { fn(); } catch (e) {} });
+}
+
+function cssVar(name, fallback) {
+  var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+var _themeToggleSVG =
+  '<svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>' +
+  '<svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+
+function themeToggleButton(extraClass) {
+  return '<button class="theme-toggle ' + (extraClass || "") + '" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Mode terang / gelap">' + _themeToggleSVG + '</button>';
+}
+
+/* Apply saved theme immediately to avoid a flash of the wrong theme */
+applyTheme(getTheme());
+
 /* ── API Configuration ──────────────────────────────────────────────────── */
 var API_BASE = (function() {
   var h = window.location.hostname;
@@ -125,6 +165,15 @@ function loadSession() {
   } catch(e) {}
 }
 
+/* Guest accounts get synthetic demo data; real accounts use live data only.
+   Checked by both email and role since API and offline login report them differently. */
+function isGuest() {
+  var u = SESSION.user || {};
+  var email = (u.email || "").toLowerCase();
+  var role  = (u.role  || "").toLowerCase();
+  return role === "guest" || email.indexOf("guest") === 0;
+}
+
 function goTo(page) { window.location.href = page; }
 
 function showToast(msg, type) {
@@ -198,6 +247,7 @@ function buildTopbar(title, actions) {
     '<div class="topbar-title">' + title + '</div>',
     '</div>',
     '<div class="topbar-actions">' + actions,
+    themeToggleButton(),
     '<button class="btn btn-secondary btn-sm" onclick="goTo(\'index.html\')">' + iconLogout + ' Logout</button>',
     '</div></header>'
   ].join("");
@@ -222,6 +272,7 @@ function getCanvasWidth(canvas, fallback) {
 /* Auto-redraw on resize */
 function watchCanvas(canvas, drawFn) {
   drawFn(canvas);
+  _redraws.push(function() { drawFn(canvas); });
   if (typeof ResizeObserver !== "undefined" && canvas.parentElement) {
     var ro = new ResizeObserver(function() {
       var newW = canvas.parentElement.clientWidth;
@@ -243,14 +294,16 @@ function _drawBar(canvas, labels, datasets, opts) {
   var allVals = [];
   datasets.forEach(function(d) { d.data.forEach(function(v) { allVals.push(v); }); });
   var maxVal = Math.max.apply(null, allVals) * 1.15;
+  var axisColor = cssVar("--chart-axis", "#9CA3AF");
+  var gridColor = cssVar("--chart-grid", "#E5E7EB");
   ctx.clearRect(0, 0, w, h);
   ctx.font = "10px 'Plus Jakarta Sans', sans-serif";
-  ctx.fillStyle = "#9CA3AF";
+  ctx.fillStyle = axisColor;
   for (var i = 0; i <= 4; i++) {
     var v = Math.round((maxVal / 4) * i);
     var y = pad.top + chartH - (v / maxVal) * chartH;
     ctx.fillText(v, 4, y + 3);
-    ctx.strokeStyle = "#E5E7EB"; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = gridColor; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + chartW, y); ctx.stroke();
   }
   var groupW = chartW / n;
@@ -267,7 +320,7 @@ function _drawBar(canvas, labels, datasets, opts) {
       ctx.fill();
     });
   });
-  ctx.fillStyle = "#9CA3AF";
+  ctx.fillStyle = axisColor;
   labels.forEach(function(lbl, i) {
     var x = pad.left + i * groupW + groupW / 2;
     ctx.fillText(lbl, x - ctx.measureText(lbl).width / 2, h - 8);
@@ -291,14 +344,16 @@ function _drawLine(canvas, labels, datasets, opts) {
   datasets.forEach(function(d) { d.data.forEach(function(v) { allVals.push(v); }); });
   var maxVal = Math.max.apply(null, allVals) * 1.2;
   var n = labels.length;
+  var axisColor = cssVar("--chart-axis", "#9CA3AF");
+  var gridColor = cssVar("--chart-grid", "#E5E7EB");
   ctx.clearRect(0, 0, w, h);
   ctx.font = "10px 'Plus Jakarta Sans', sans-serif";
-  ctx.fillStyle = "#9CA3AF";
+  ctx.fillStyle = axisColor;
   for (var i = 0; i <= 4; i++) {
     var v = Math.round((maxVal / 4) * i);
     var y = pad.top + chartH - (v / maxVal) * chartH;
     ctx.fillText(v + "%", 2, y + 3);
-    ctx.strokeStyle = "#E5E7EB"; ctx.lineWidth = 0.5;
+    ctx.strokeStyle = gridColor; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + chartW, y); ctx.stroke();
   }
   datasets.forEach(function(ds, di) {
@@ -318,7 +373,7 @@ function _drawLine(canvas, labels, datasets, opts) {
       ctx.beginPath(); ctx.arc(x, y2, 3, 0, Math.PI * 2); ctx.fill();
     });
   });
-  ctx.fillStyle = "#9CA3AF";
+  ctx.fillStyle = axisColor;
   labels.forEach(function(lbl, i) {
     var x = pad.left + (i / (n - 1)) * chartW;
     ctx.fillText(lbl, x - ctx.measureText(lbl).width / 2, h - 8);
@@ -369,6 +424,19 @@ loadSession();
 
 document.addEventListener("DOMContentLoaded", function() {
   injectToastContainer();
+  // App pages render the toggle inside their topbar (see buildTopbar). The login
+  // page has no topbar, so give it a floating toggle instead.
+  var path = window.location.pathname;
+  var isLoginPage = path.includes("index.html") || path === "/" || path === "" || path.endsWith("/frontend/");
+  if (isLoginPage && !document.querySelector(".theme-toggle")) {
+    var btn = document.createElement("button");
+    btn.className = "theme-toggle theme-toggle-floating";
+    btn.setAttribute("aria-label", "Toggle dark mode");
+    btn.setAttribute("title", "Mode terang / gelap");
+    btn.onclick = toggleTheme;
+    btn.innerHTML = _themeToggleSVG;
+    document.body.appendChild(btn);
+  }
 });
 
 window.App = {
@@ -390,6 +458,7 @@ window.App = {
   apiPolicyBrief: apiPolicyBrief,
   saveSession: saveSession,
   loadSession: loadSession,
+  isGuest: isGuest,
   goTo: goTo,
   showToast: showToast,
   fmtNum: fmtNum,
@@ -397,6 +466,10 @@ window.App = {
   fmtRp: fmtRp,
   buildSidebar: buildSidebar,
   buildTopbar: buildTopbar,
+  toggleTheme: toggleTheme,
+  applyTheme: applyTheme,
+  getTheme: getTheme,
+  themeToggleButton: themeToggleButton,
   sleep: sleep,
   drawBarChart: drawBarChart,
   drawLineChart: drawLineChart,
