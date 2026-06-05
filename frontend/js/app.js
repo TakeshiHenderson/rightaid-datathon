@@ -176,6 +176,16 @@ function isGuest() {
 
 function goTo(page) { window.location.href = page; }
 
+/* Clear all per-user state so the next login doesn't inherit the previous
+   user's token or uploaded session. */
+function logout() {
+  try {
+    sessionStorage.removeItem("rightaid_token");
+    sessionStorage.removeItem("rightaid_session");
+  } catch (e) {}
+  goTo("index.html");
+}
+
 function showToast(msg, type) {
   type = type || "default";
   var c = document.getElementById("toast-container");
@@ -248,7 +258,7 @@ function buildTopbar(title, actions) {
     '</div>',
     '<div class="topbar-actions">' + actions,
     themeToggleButton(),
-    '<button class="btn btn-secondary btn-sm" onclick="goTo(\'index.html\')">' + iconLogout + ' Logout</button>',
+    '<button class="btn btn-secondary btn-sm" onclick="App.logout()">' + iconLogout + ' Logout</button>',
     '</div></header>'
   ].join("");
 }
@@ -460,6 +470,7 @@ window.App = {
   loadSession: loadSession,
   isGuest: isGuest,
   goTo: goTo,
+  logout: logout,
   showToast: showToast,
   fmtNum: fmtNum,
   fmtPct: fmtPct,

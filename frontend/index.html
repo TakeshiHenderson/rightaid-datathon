@@ -123,7 +123,7 @@
 
   <div id="toast-container"></div>
   <script src="js/data.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/app.js?v=4"></script>
   <script>
     function togglePwd() {
       const inp = document.getElementById("password");
@@ -176,7 +176,13 @@
         return;
       }
 
+      // Start a clean session for the new user — never inherit a previous
+      // user's uploaded session, province, or scenario.
       App.SESSION.user = userData;
+      App.SESSION.lastSessionId = null;
+      App.SESSION.province = null;
+      App.SESSION.scenario = "normal";
+      App.SESSION.generated = false;
       App.saveSession();
       App.showToast("Login berhasil. Selamat datang, " + userData.name + "!", "success");
       await App.sleep(600);
