@@ -24,6 +24,14 @@
     .rec-details { font-size:.75rem; color:var(--text-2); }
     .legend-item { display:flex; align-items:center; gap:6px; font-size:.75rem; color:var(--text-2); font-weight:500; }
     .legend-sq { width:12px; height:12px; border-radius:3px; }
+    .config-row { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+    .step-label { font-weight:700; font-size:.85rem; color:var(--text-2); flex-shrink:0; display:flex; align-items:center; gap:8px; }
+    .step-num { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--accent-light); color:var(--accent); font-size:.75rem; font-weight:800; }
+    .source-toggle { max-width:360px; }
+    .mode-panel { display:none; }
+    .mode-panel.active { display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap; }
+    .helper-text { flex-basis:100%; font-size:.78rem; color:var(--text-3); margin-top:2px; line-height:1.5; }
+    .status-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
@@ -33,57 +41,87 @@
       <div id="topbar-mount"></div>
       <div class="page-body">
 
+        <!-- Konfigurasi Analisis -->
         <div class="card mb-6">
-          <div class="card-body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-            <div style="font-weight:600;font-size:.85rem;color:var(--text-2);flex-shrink:0;">Skenario Kebijakan:</div>
-            <div class="tabs" style="flex:1;max-width:400px;" id="scenario-tabs">
-              <button class="tab-btn active" onclick="setScenario('normal',this)">Kondisi Normal</button>
-              <button class="tab-btn" onclick="setScenario('phk',this)">PHK Massal</button>
-              <button class="tab-btn" onclick="setScenario('bencana',this)">Pasca-Bencana</button>
-            </div>
-            <div id="scenario-badge"></div>
-            <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;">
-              <button class="btn btn-secondary btn-sm" onclick="generateAndPredict()" title="Generate synthetic data dan jalankan prediksi">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-                Generate &amp; Predict
-              </button>
-              <button class="btn btn-outline btn-sm" onclick="runPredict()" id="btn-predict" title="Prediksi ulang dari sesi yang sudah ada">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6z"/></svg>
-                Predict Ulang
-              </button>
-              <a href="data-viewer.html" class="btn btn-secondary btn-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-                Data Viewer
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Upload Panel -->
-        <div class="card mb-6" id="upload-panel">
           <div class="card-header">
             <div>
-              <div class="card-title">Upload Data CSV / JSON</div>
-              <div class="card-subtitle">Upload data rumah tangga nyata untuk dianalisis model</div>
+              <div class="card-title">Konfigurasi Analisis</div>
+              <div class="card-subtitle">Pilih skenario dan sumber data, lalu jalankan model ML-PMT</div>
             </div>
-            <button class="btn btn-outline btn-sm" onclick="downloadTemplate()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download Template
-            </button>
+            <a href="data-viewer.html" class="btn btn-secondary btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+              Data Viewer
+            </a>
           </div>
-          <div class="card-body" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
-            <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0;">
-              <label class="form-label" for="upload-province-select">Provinsi</label>
-              <select id="upload-province-select" class="form-control"></select>
+          <div class="card-body">
+
+            <!-- Step 1: Skenario -->
+            <div class="config-row">
+              <div class="step-label"><span class="step-num">1</span> Skenario Kebijakan</div>
+              <div class="tabs" style="flex:1;max-width:400px;" id="scenario-tabs">
+                <button class="tab-btn active" onclick="setScenario('normal',this)">Kondisi Normal</button>
+                <button class="tab-btn" onclick="setScenario('phk',this)">PHK Massal</button>
+                <button class="tab-btn" onclick="setScenario('bencana',this)">Pasca-Bencana</button>
+              </div>
+              <div id="scenario-badge"></div>
             </div>
-            <div class="form-group" style="flex:2;min-width:260px;margin-bottom:0;">
-              <label class="form-label" for="upload-file-input">File CSV atau JSON</label>
-              <input type="file" id="upload-file-input" class="form-control" accept=".csv,.json" />
+
+            <div class="divider" style="margin:18px 0;"></div>
+
+            <!-- Step 2: Sumber Data -->
+            <div class="config-row">
+              <div class="step-label"><span class="step-num">2</span> Sumber Data</div>
+              <div class="tabs source-toggle" id="source-tabs">
+                <button class="tab-btn active" onclick="setSource('synthetic',this)">Data Sintetis</button>
+                <button class="tab-btn" onclick="setSource('upload',this)">Upload Data Nyata</button>
+              </div>
             </div>
-            <button class="btn btn-primary" onclick="uploadAndPredict()" style="flex-shrink:0;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload &amp; Predict
-            </button>
+
+            <!-- Synthetic mode -->
+            <div class="mode-panel active" id="mode-synthetic" style="margin-top:16px;">
+              <div class="form-group" style="flex:1;min-width:200px;margin-bottom:0;">
+                <label class="form-label" for="synth-province-select">Provinsi</label>
+                <select id="synth-province-select" class="form-control"></select>
+              </div>
+              <button class="btn btn-primary" onclick="generateAndPredict()" style="flex-shrink:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6z"/></svg>
+                Jalankan Analisis
+              </button>
+              <div class="helper-text">Membuat 5.000 rumah tangga sintetis sesuai skenario terpilih, lalu langsung menjalankan model. Cocok untuk eksplorasi cepat tanpa data.</div>
+            </div>
+
+            <!-- Upload mode -->
+            <div class="mode-panel" id="mode-upload" style="margin-top:16px;">
+              <div class="form-group" style="flex:1;min-width:180px;margin-bottom:0;">
+                <label class="form-label" for="upload-province-select">Provinsi</label>
+                <select id="upload-province-select" class="form-control"></select>
+              </div>
+              <div class="form-group" style="flex:2;min-width:240px;margin-bottom:0;">
+                <label class="form-label" for="upload-file-input">File CSV atau JSON</label>
+                <input type="file" id="upload-file-input" class="form-control" accept=".csv,.json" />
+              </div>
+              <button class="btn btn-outline" onclick="downloadTemplate()" style="flex-shrink:0;" title="Unduh format kolom yang benar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Template
+              </button>
+              <button class="btn btn-primary" onclick="uploadAndPredict()" style="flex-shrink:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload &amp; Analisis
+              </button>
+              <div class="helper-text">Unggah data rumah tangga nyata. Gunakan <strong>Template</strong> agar kolom sesuai — data divalidasi lalu langsung dijalankan melalui model.</div>
+            </div>
+
+            <div class="divider" style="margin:18px 0;"></div>
+
+            <!-- Status -->
+            <div class="status-bar">
+              <span id="data-status" class="badge badge-gray">Belum ada analisis — menampilkan data contoh</span>
+              <button class="btn btn-secondary btn-sm" onclick="runPredict()" id="btn-rerun" style="display:none;" title="Jalankan ulang model pada data yang sama">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Analisis Ulang
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -171,25 +209,29 @@
       document.getElementById("sidebar-mount").innerHTML = App.buildSidebar("analysis");
       document.getElementById("topbar-mount").innerHTML  = App.buildTopbar("Analisis Targeting");
 
-      // Populate upload province dropdown
-      var upSel = document.getElementById("upload-province-select");
-      EkoData.PROVINCES.forEach(function(p) {
-        var opt = document.createElement("option");
-        opt.value = p.id; opt.textContent = p.name;
-        upSel.appendChild(opt);
+      // Populate province dropdowns (synthetic + upload)
+      ["synth-province-select", "upload-province-select"].forEach(function(selId) {
+        var sel = document.getElementById(selId);
+        EkoData.PROVINCES.forEach(function(p) {
+          var opt = document.createElement("option");
+          opt.value = p.id; opt.textContent = p.name;
+          sel.appendChild(opt);
+        });
+        if (App.SESSION.province) sel.value = App.SESSION.province;
       });
-      if (App.SESSION.province) upSel.value = App.SESSION.province;
 
       window.currentScenario = App.SESSION.scenario || "normal";
+      window.currentSource = "synthetic";
 
       // Restore session_id if stored
       var stored = App.SESSION.lastSessionId;
       if (stored) {
         currentSessionId = stored;
-        App.showToast("Menggunakan sesi sebelumnya. Klik Predict untuk memprediksi kembali.", "default");
+        App.showToast("Menggunakan sesi sebelumnya. Klik Analisis Ulang untuk memproses kembali.", "default");
       }
 
       renderAll();
+      renderStatus();
       App.loadSession();
     });
 
@@ -198,9 +240,37 @@
       window.currentScenario = sc;
       App.SESSION.scenario = sc;
       App.saveSession();
-      document.querySelectorAll(".tab-btn").forEach(function(b) { b.classList.remove("active"); });
+      document.querySelectorAll("#scenario-tabs .tab-btn").forEach(function(b) { b.classList.remove("active"); });
       el.classList.add("active");
       renderAll();
+    }
+
+    function setSource(src, el) {
+      window.currentSource = src;
+      document.querySelectorAll("#source-tabs .tab-btn").forEach(function(b) { b.classList.remove("active"); });
+      el.classList.add("active");
+      document.getElementById("mode-synthetic").classList.toggle("active", src === "synthetic");
+      document.getElementById("mode-upload").classList.toggle("active", src === "upload");
+    }
+
+    // Reflects whether results are live, a session is pending, or only sample data is shown
+    function renderStatus() {
+      var el = document.getElementById("data-status");
+      var rerun = document.getElementById("btn-rerun");
+      var prov = App.SESSION.province ? " — " + App.SESSION.province : "";
+      if (currentPredictions) {
+        el.className = "badge badge-green";
+        el.textContent = "Menampilkan hasil analisis" + prov;
+        rerun.style.display = "";
+      } else if (currentSessionId) {
+        el.className = "badge badge-blue";
+        el.textContent = "Sesi tersimpan" + prov + " — klik Analisis Ulang untuk memproses";
+        rerun.style.display = "";
+      } else {
+        el.className = "badge badge-gray";
+        el.textContent = "Belum ada analisis — menampilkan data contoh";
+        rerun.style.display = "none";
+      }
     }
 
     function renderAll() {
@@ -326,12 +396,14 @@
 
     // â”€â”€ Generate (API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     async function generateAndPredict() {
-      var pid = App.SESSION.province;
+      var pid = document.getElementById("synth-province-select").value;
       var sc  = window.currentScenario;
       if (!pid) {
-        App.showToast("Pilih provinsi di Data Viewer terlebih dahulu.", "error");
+        App.showToast("Pilih provinsi terlebih dahulu.", "error");
         return;
       }
+      App.SESSION.province = pid;
+      App.saveSession();
       App.showToast("Generating data untuk " + pid + "...", "default");
       try {
         var genResp = await App.apiGenerate(pid, sc, (App.SESSION.anomalyPct || 15) / 100, 5000);
@@ -395,11 +467,13 @@
         renderMetricsFromAPI(pred);
         renderDecileChartFromAPI(pred);
         renderCandidatesFromAPI(pred);
-        App.showToast("Prediksi selesai!", "success");
+        renderStatus();
+        App.showToast("Analisis selesai!", "success");
       } catch(err) {
-        App.showToast("Prediksi gagal: " + err.message + ". Menggunakan data dummy.", "error");
+        App.showToast("Analisis gagal: " + err.message + ". Menggunakan data dummy.", "error");
         currentPredictions = null;
         renderAll();
+        renderStatus();
       }
     }
 
